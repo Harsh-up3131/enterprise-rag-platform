@@ -1,0 +1,14 @@
+[
+  {
+    "question": "What does the deployment SOP require before a release?",
+    "relevant_chunk_ids": [],
+    "expect_abstain": false,
+    "tags": ["deployment", "sop"]
+  },
+  {
+    "question": "What is the capital of a fictional planet named Zorblax?",
+    "relevant_chunk_ids": [],
+    "expect_abstain": true,
+    "tags": ["adversarial", "no-evidence"]
+  }
+]

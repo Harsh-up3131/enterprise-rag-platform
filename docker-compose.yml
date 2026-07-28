@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ekip
+      POSTGRES_PASSWORD: ekip
+      POSTGRES_DB: ekip
+    ports:
+      - "5432:5432"
+    volumes:
+      - ekip_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ekip"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file: .env
+    # Lets the container reach Ollama running on your host machine at
+    # http://host.docker.internal:11434. Docker Desktop (Mac/Windows) sets
+    # this up automatically; this line makes it work on Linux too.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: .
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  ekip_pg_data:
