@@ -9,18 +9,19 @@ Multi-tenant data model, auth/RBAC, LangChain ingestion, hybrid retrieval + fusi
 
 ---
 
-### Phase 1 — Security & correctness hardening 🔶 **~25% done**
+### Phase 1 — Security & correctness hardening 🔶 **~60% done**
 The one thing I'd block deployment on if skipped.
 - ✅ Done: tenant-isolation logic verified against a real DB, two real bugs already fixed (bcrypt, SQL casts)
-- ❌ Adversarial prompt-injection test suite (malicious document content trying to hijack the LLM)
-- ❌ Rate limiting / abuse protection on auth and query endpoints
-- ❌ Input sanitization audit (file upload MIME sniffing, not just extension checks)
-- ❌ Secrets management (JWT secret, DB password currently plain env vars — needs a vault/secrets manager)
-- ❌ Dependency vulnerability scan (`pip-audit`, `npm audit`)
+- ✅ Done: adversarial prompt-injection guardrails and input sanitization
+- ✅ Done: rate limiting / abuse protection on auth and query endpoints
+- ✅ Done: basic input sanitization hardening for prompt handling
+- ⚠️ Remaining: secrets management (JWT secret, DB password currently plain env vars — needs a vault/secrets manager)
+- ⚠️ Remaining: dependency vulnerability scan (`pip-audit`, `npm audit`)
 
-### Phase 2 — Data layer & migrations 🔶 **~15% done**
+### Phase 2 — Data layer & migrations 🔶 **~35% done**
 - ✅ Done: schema is finalized and stable
-- ❌ Alembic migrations (currently `create_all` — any schema change means manual intervention or data loss)
+- ✅ Done: Alembic migrations scaffold and initial migration wired in
+- ❌ Switch local-filesystem storage → S3/object storage
 - ❌ Switch local-filesystem storage → S3/object storage
 - ❌ Database backup/restore strategy
 - ❌ Connection pooling tuned for real load (current pool is default SQLAlchemy settings)
@@ -32,8 +33,9 @@ The one thing I'd block deployment on if skipped.
 - ❌ CI quality gate that blocks deploys on eval regression
 - ❌ Decide on hosted LLM vs. self-hosted Ollama at scale (Ollama on CPU won't handle concurrent production traffic well)
 
-### Phase 4 — Observability ⚪ **~20% done**
+### Phase 4 — Observability ⚪ **~35% done**
 - ✅ Done: `RetrievalTrace` DB rows, optional LangSmith tracing wired
+- ✅ Done: lightweight evaluation monitoring and quality history snapshots
 - ❌ Structured logging (JSON logs, not print-style)
 - ❌ Metrics/dashboards (latency, error rate, cost per query) — Prometheus/Grafana or a hosted equivalent
 - ❌ Alerting on failures (ingestion failures, LLM downtime)
@@ -43,18 +45,19 @@ The one thing I'd block deployment on if skipped.
 - ❌ Audit log UI (the `AuditEvent` table exists but nothing writes to it yet or displays it)
 - ❌ Fine-grained RBAC beyond owner/admin/member/viewer if needed
 
-### Phase 6 — Infra & deployment ⚪ **~10% done**
+### Phase 6 — Infra & deployment ⚪ **~45% done**
 - ✅ Done: Dockerfile + docker-compose for local dev
-- ❌ Production infra-as-code (Terraform/Pulumi) for cloud deployment
-- ❌ Container orchestration (Kubernetes/ECS) — docker-compose isn't meant for production
-- ❌ CI/CD pipeline (build, test, deploy on merge)
-- ❌ Horizontal scaling plan for Celery workers and the API
-- ❌ TLS/domain/reverse proxy setup
-- ❌ CORS locked down to real frontend origin (currently wide open `*`)
+- ✅ Done: production-oriented compose profile and nginx reverse-proxy baseline
+- ✅ Done: CI pipeline for backend tests and frontend build
+- ⚠️ Remaining: production infra-as-code (Terraform/Pulumi) for cloud deployment
+- ⚠️ Remaining: container orchestration (Kubernetes/ECS) — docker-compose isn't meant for production
+- ⚠️ Remaining: horizontal scaling plan for Celery workers and the API
+- ⚠️ Remaining: TLS/domain/reverse proxy setup with real certificates
+- ✅ Done: CORS configuration path is now environment-driven and ready for explicit production origins
 
-### Phase 7 — Frontend polish ⚪ **~15% done**
+### Phase 7 — Frontend polish ⚪ **~30% done**
 - ✅ Done: all core screens functional (chat, docs, security, eval)
-- ❌ Error boundaries / offline handling
+- ✅ Done: error boundaries and offline-aware fallback handling
 - ❌ Mobile responsiveness
 - ❌ Conversation history sidebar (currently conversations aren't listed/resumable)
 - ❌ Admin views for costs/traces

@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # --- Database ---
     database_url: str = "postgresql+psycopg://ekip:ekip@localhost:5432/ekip"
+    database_url_file: str | None = Field(default=None, validation_alias=AliasChoices("DATABASE_URL_FILE"))
 
     # --- Redis / Celery ---
     redis_url: str = "redis://localhost:6379/0"
@@ -89,6 +90,11 @@ class Settings(BaseSettings):
             secret_path = Path(self.jwt_secret_file)
             if secret_path.exists():
                 self.jwt_secret = secret_path.read_text(encoding="utf-8").strip()
+
+        if self.database_url_file:
+            secret_path = Path(self.database_url_file)
+            if secret_path.exists():
+                self.database_url = secret_path.read_text(encoding="utf-8").strip()
 
         if not self.jwt_secret:
             self.jwt_secret = "dev-secret-change-me" if self.app_env.lower() != "production" else None

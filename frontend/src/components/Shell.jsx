@@ -5,6 +5,7 @@ import Chat from "./Chat.jsx";
 import EvidencePanel from "./EvidencePanel.jsx";
 import EvalPanel from "./EvalPanel.jsx";
 import SecurityPanel from "./SecurityPanel.jsx";
+import ConversationHistory from "./ConversationHistory.jsx";
 
 export default function Shell({ session, onLogout }) {
   const [tab, setTab] = useState("chat"); // "chat" | "eval" | "security"
@@ -12,6 +13,11 @@ export default function Shell({ session, onLogout }) {
   const [activeKbId, setActiveKbId] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [shownCitations, setShownCitations] = useState(null);
+  const [conversations, setConversations] = useState([
+    { id: "demo-1", title: "Project overview", updatedAt: "today" },
+    { id: "demo-2", title: "Onboarding notes", updatedAt: "yesterday" },
+  ]);
+  const [activeConversationId, setActiveConversationId] = useState("demo-1");
 
   useEffect(() => {
     api.listKnowledgeBases().then((kbs) => {
@@ -63,9 +69,21 @@ export default function Shell({ session, onLogout }) {
           onDocumentsChanged={refreshDocuments}
         />
 
-        {tab === "chat" && <Chat knowledgeBaseId={activeKbId} onCitationsShown={setShownCitations} />}
-        {tab === "eval" && <EvalPanel />}
-        {tab === "security" && <SecurityPanel documents={documents} />}
+        <div className="workspace-main">
+          {tab === "chat" && (
+            <>
+              <ConversationHistory
+                conversations={conversations}
+                activeConversationId={activeConversationId}
+                onSelectConversation={setActiveConversationId}
+                onStartNew={() => setActiveConversationId(null)}
+              />
+              <Chat knowledgeBaseId={activeKbId} onCitationsShown={setShownCitations} />
+            </>
+          )}
+          {tab === "eval" && <EvalPanel />}
+          {tab === "security" && <SecurityPanel documents={documents} />}
+        </div>
 
         {showEvidence && <EvidencePanel citations={shownCitations} />}
       </div>

@@ -8,6 +8,7 @@ const STORAGE_KEY = "ekip_session";
 export default function App() {
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);
+  const [offline, setOffline] = useState(!navigator.onLine);
 
   // Restore a previous session from localStorage on load, so refreshing the
   // page doesn't force a re-login.
@@ -19,6 +20,19 @@ export default function App() {
       setSession(parsed);
     }
     setReady(true);
+  }, []);
+
+  useEffect(() => {
+    const onOnline = () => setOffline(false);
+    const onOffline = () => setOffline(true);
+
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
   }, []);
 
   function handleAuthenticated(result) {
@@ -35,9 +49,18 @@ export default function App() {
 
   if (!ready) return null;
 
-  return session ? (
-    <Shell session={session} onLogout={handleLogout} />
-  ) : (
-    <AuthScreen onAuthenticated={handleAuthenticated} />
+  return (
+    <>
+      {offline && (
+        <div className="offline-banner">
+          You’re offline. Cached session data is still available, but network-backed actions will be unavailable until you reconnect.
+        </div>
+      )}
+      {session ? (
+        <Shell session={session} onLogout={handleLogout} />
+      ) : (
+        <AuthScreen onAuthenticated={handleAuthenticated} />
+      )}
+    </>
   );
 }
