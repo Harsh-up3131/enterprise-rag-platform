@@ -134,12 +134,24 @@ def run_isolation_check(db: Session, organization_id: str, user_id: str, knowled
 
         leak_hits_lexical = lexical_search(db, shadow_secret, organization_id, user_id, top_k=5)
         leak_hits_dense = dense_search(db, shadow_secret, organization_id, user_id, top_k=5)
-        leaked = len(leak_hits_lexical) > 0 or len(leak_hits_dense) > 0
+        returned_chunk_ids = {c.chunk_id for c in leak_hits_lexical} | {c.chunk_id for c in leak_hits_dense}
+        leaked = False
+        leaked_details = []
+        if returned_chunk_ids:
+            # Resolve returned chunks to their documents and check whether any
+            # of them belong to the shadow organization / the planted shadow
+            # document. Only those constitute a real cross-tenant leak.
+            rows = db.query(Chunk.id, Chunk.document_id, Chunk.organization_id).filter(Chunk.id.in_(list(returned_chunk_ids))).all()
+            for cid, doc_id, org_id in rows:
+                if org_id == shadow_org.id or doc_id == shadow_doc.id:
+                    leaked = True
+                    leaked_details.append(f"chunk {cid} -> doc {doc_id} (org {org_id})")
+
         results.append(CheckResult(
             name="Cross-tenant isolation: other org's document is NOT findable",
             passed=not leaked,
-            detail="No leakage detected across the organization boundary."
-                    if not leaked else "FAILED — content from another organization was returned in search results.",
+            detail=("No leakage detected across the organization boundary." if not leaked
+                    else "FAILED — content from another organization was returned in search results: " + "; ".join(leaked_details)),
         ))
 
         # --- Check 3: no-ACL rows means default-deny, not default-allow ---
@@ -149,11 +161,23 @@ def run_isolation_check(db: Session, organization_id: str, user_id: str, knowled
         db.commit()
 
         noacl_hits = dense_search(db, noacl_secret, organization_id, user_id, top_k=5)
+        returned_ids = {c.chunk_id for c in noacl_hits}
+        default_deny_violations = []
+        if returned_ids:
+            rows = db.query(Chunk.id, Chunk.document_id, Chunk.organization_id).filter(Chunk.id.in_(list(returned_ids))).all()
+            for cid, doc_id, org_id in rows:
+                # A returned chunk that belongs to the no-ACL document (or the
+                # same org) is a violation. We specifically check document id
+                # equality so unrelated same-org results don't trigger a false
+                # positive.
+                if doc_id == noacl_doc.id:
+                    default_deny_violations.append(f"chunk {cid} -> doc {doc_id} (org {org_id})")
+
         results.append(CheckResult(
             name="Default-deny: document with no ACL rows is NOT findable by anyone",
-            passed=len(noacl_hits) == 0,
-            detail="Absence of an ACL row correctly means no access."
-                    if len(noacl_hits) == 0 else "FAILED — a document with zero ACL rows was still returned.",
+            passed=len(default_deny_violations) == 0,
+            detail=("Absence of an ACL row correctly means no access." if not default_deny_violations
+                    else "FAILED — a document with zero ACL rows was still returned: " + "; ".join(default_deny_violations)),
         ))
 
     finally:

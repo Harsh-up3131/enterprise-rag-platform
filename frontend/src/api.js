@@ -42,6 +42,8 @@ export const api = {
 
   ask: (payload) => request("/query", { method: "POST", body: payload }),
 
-  runEval: () => request("/eval/run", { method: "POST" }),
+  getSampleEvalSet: () => request("/eval/sample-set"),
+  // Omit `cases` to grade against the bundled sample set.
+  runEval: (cases) => request("/eval/run", { method: "POST", body: cases ? { cases } : {} }),
   runIsolationCheck: () => request("/admin/security/isolation-check", { method: "POST" }),
 };

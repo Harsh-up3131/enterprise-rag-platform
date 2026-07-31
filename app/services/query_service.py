@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import RetrievalTrace, Conversation, Message, Citation
 from app.services.retrieval.retriever import retrieve
-from app.services.generation.prompt import build_prompt
+from app.services.generation.prompt import build_prompt, build_citation_retry_prompt
 from app.services.generation.llm_client import generate
 from app.services.generation.citation_validator import extract_and_validate_citations, strip_citation_tags
 from app.services.generation import guardrails
@@ -72,6 +72,22 @@ def answer_question(
             answer_text = ABSTENTION_MESSAGE
         else:
             validated_citations = extract_and_validate_citations(raw_answer, result.evidence)
+
+            # Small local models drop the [chunk_id] tag on a meaningful share
+            # of otherwise-grounded answers. Rather than discard a good answer,
+            # re-ask once with an explicit correction and the allowed id list.
+            # Citations from the retry are validated identically — this makes
+            # the model restate its sources, it never invents attribution.
+            if not any(c.verification_status == "verified" for c in validated_citations):
+                retry_system, retry_user = build_citation_retry_prompt(question, result.evidence)
+                retry_answer = generate(retry_system, retry_user)
+                retry_ok, _ = guardrails.check_output(retry_answer)
+                if retry_ok:
+                    retry_citations = extract_and_validate_citations(retry_answer, result.evidence)
+                    if any(c.verification_status == "verified" for c in retry_citations):
+                        raw_answer = retry_answer
+                        validated_citations = retry_citations
+
             answer_text = strip_citation_tags(raw_answer)
             # Safe-abstention fallback: a grounded-generation answer with zero
             # verified citations is treated as insufficiently evidenced.

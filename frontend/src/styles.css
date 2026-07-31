@@ -397,6 +397,64 @@ h1, h2, h3 {
   letter-spacing: 0.05em;
   margin-top: 4px;
 }
+.metric-note {
+  font-size: 10px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  opacity: 0.8;
+}
+
+.eval-cases { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.eval-case {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--paper-raised);
+}
+.eval-case input[type="text"], .eval-case > input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 11px;
+  background: var(--paper);
+}
+.eval-case > input:focus { border-color: var(--sage); }
+.eval-case-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.eval-case-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.eval-breakdown {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.eval-breakdown th, .eval-breakdown td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.eval-breakdown th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.eval-breakdown td.ok { color: var(--sage); }
+.eval-breakdown td.bad { color: var(--danger); }
 
 /* ---------- Toasts ---------- */
 .toast-stack {

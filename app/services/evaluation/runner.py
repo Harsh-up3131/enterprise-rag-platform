@@ -25,8 +25,28 @@ def load_eval_set(path: str = _SAMPLE_EVAL_PATH) -> list[dict]:
         return json.load(f)
 
 
-def run_eval(db: Session, organization_id: str, user_id: str, eval_set_path: str = _SAMPLE_EVAL_PATH) -> dict:
-    cases = load_eval_set(eval_set_path)
+def run_eval(
+    db: Session,
+    organization_id: str,
+    user_id: str,
+    eval_set_path: str = _SAMPLE_EVAL_PATH,
+    cases: list[dict] | None = None,
+    *,
+    # If True, cases that don't include `relevant_chunk_ids` are scored as
+    # recall=0.0 instead of being excluded (so Recall@K won't show as "n/a").
+    score_missing_recall_as_zero: bool = False,
+) -> dict:
+    """Runs each case through the live pipeline and aggregates the scores.
+
+    `cases` lets a caller supply an eval set inline (the Evaluation panel
+    posts one) instead of reading the on-disk sample. The sample set is
+    deliberately generic, so it only produces meaningful citation/recall
+    numbers against a corpus that happens to contain those answers —
+    grading your own documents means supplying your own questions.
+    """
+    if cases is None:
+        cases = load_eval_set(eval_set_path)
+
     results: list[EvalCaseResult] = []
 
     for case in cases:
@@ -36,8 +56,12 @@ def run_eval(db: Session, organization_id: str, user_id: str, eval_set_path: str
 
         results.append(EvalCaseResult(
             question=case["question"],
-            recall_at_k=recall_at_k(retrieved_ids, case.get("relevant_chunk_ids", [])),
-            any_citation_correct=len(result.citations) > 0,
+            recall_at_k=recall_at_k(
+                retrieved_ids,
+                case.get("relevant_chunk_ids", []),
+                treat_missing_as_zero=score_missing_recall_as_zero,
+            ),
+            num_verified_citations=len(result.citations),
             abstained=result.abstained,
             expected_abstain=expected_abstain,
             correct_abstention_behavior=(result.abstained == expected_abstain),
