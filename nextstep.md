@@ -9,12 +9,13 @@ Multi-tenant data model, auth/RBAC, LangChain ingestion, hybrid retrieval + fusi
 
 ---
 
-### Phase 1 — Security & correctness hardening 🔶 **~60% done**
+### Phase 1 — Security & correctness hardening 🔶 **~80% done**
 The one thing I'd block deployment on if skipped.
 - ✅ Done: tenant-isolation logic verified against a real DB, two real bugs already fixed (bcrypt, SQL casts)
 - ✅ Done: adversarial prompt-injection guardrails and input sanitization
 - ✅ Done: rate limiting / abuse protection on auth and query endpoints
 - ✅ Done: basic input sanitization hardening for prompt handling
+- ✅ Done: dependency audit reporting and security-surface visibility for manifests and audit commands
 - ⚠️ Remaining: secrets management (JWT secret, DB password currently plain env vars — needs a vault/secrets manager)
 - ⚠️ Remaining: dependency vulnerability scan (`pip-audit`, `npm audit`)
 
@@ -33,10 +34,10 @@ The one thing I'd block deployment on if skipped.
 - ❌ CI quality gate that blocks deploys on eval regression
 - ❌ Decide on hosted LLM vs. self-hosted Ollama at scale (Ollama on CPU won't handle concurrent production traffic well)
 
-### Phase 4 — Observability ⚪ **~35% done**
+### Phase 4 — Observability ⚪ **~60% done**
 - ✅ Done: `RetrievalTrace` DB rows, optional LangSmith tracing wired
 - ✅ Done: lightweight evaluation monitoring and quality history snapshots
-- ❌ Structured logging (JSON logs, not print-style)
+- ✅ Done: structured JSON logging with request-aware fields for easier log aggregation
 - ❌ Metrics/dashboards (latency, error rate, cost per query) — Prometheus/Grafana or a hosted equivalent
 - ❌ Alerting on failures (ingestion failures, LLM downtime)
 
@@ -55,11 +56,11 @@ The one thing I'd block deployment on if skipped.
 - ⚠️ Remaining: TLS/domain/reverse proxy setup with real certificates
 - ✅ Done: CORS configuration path is now environment-driven and ready for explicit production origins
 
-### Phase 7 — Frontend polish ⚪ **~30% done**
+### Phase 7 — Frontend polish ⚪ **~60% done**
 - ✅ Done: all core screens functional (chat, docs, security, eval)
 - ✅ Done: error boundaries and offline-aware fallback handling
-- ❌ Mobile responsiveness
-- ❌ Conversation history sidebar (currently conversations aren't listed/resumable)
+- ✅ Done: responsive shell layout for smaller screens
+- ✅ Done: conversation-history sidebar in the main chat workspace
 - ❌ Admin views for costs/traces
 
 ---

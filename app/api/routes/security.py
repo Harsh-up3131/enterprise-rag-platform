@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.core.deps import require_role, RequestContext
 from app.models import KnowledgeBase
+from app.services.security.dependency_audit import build_audit_commands, collect_dependency_audit_report
 from app.services.security.tenant_isolation_check import run_isolation_check
 
 router = APIRouter(prefix="/admin/security", tags=["security"])
@@ -26,6 +27,16 @@ class IsolationCheckResponse(BaseModel):
     checks: list[CheckOut]
 
 
+class DependencyAuditResponse(BaseModel):
+    project_root: str
+    python_manifest_exists: bool
+    javascript_manifest_exists: bool
+    python_manifests: list[str]
+    javascript_manifests: list[str]
+    tool_status: dict[str, str]
+    commands: list[str]
+
+
 @router.post("/isolation-check", response_model=IsolationCheckResponse)
 def isolation_check(
     ctx: RequestContext = Depends(require_role("owner", "admin")),
@@ -40,4 +51,21 @@ def isolation_check(
     return IsolationCheckResponse(
         all_passed=all(r.passed for r in results),
         checks=[CheckOut(name=r.name, passed=r.passed, detail=r.detail) for r in results],
+    )
+
+
+@router.get("/dependency-audit", response_model=DependencyAuditResponse)
+def dependency_audit(
+    ctx: RequestContext = Depends(require_role("owner", "admin")),
+):
+    report = collect_dependency_audit_report()
+    commands = build_audit_commands()
+    return DependencyAuditResponse(
+        project_root=report["project_root"],
+        python_manifest_exists=report["python_manifest_exists"],
+        javascript_manifest_exists=report["javascript_manifest_exists"],
+        python_manifests=report["python_manifests"],
+        javascript_manifests=report["javascript_manifests"],
+        tool_status=report["tool_status"],
+        commands=commands,
     )

@@ -47,4 +47,5 @@ export const api = {
   runEval: (cases) => request("/eval/run", { method: "POST", body: cases ? { cases } : {} }),
   getQualityDashboard: () => request("/eval/quality"),
   runIsolationCheck: () => request("/admin/security/isolation-check", { method: "POST" }),
+  getDependencyAudit: () => request("/admin/security/dependency-audit"),
 };

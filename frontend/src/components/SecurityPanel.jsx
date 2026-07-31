@@ -5,6 +5,8 @@ export default function SecurityPanel({ documents }) {
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState(null);
   const [checkError, setCheckError] = useState(null);
+  const [auditResult, setAuditResult] = useState(null);
+  const [auditError, setAuditError] = useState(null);
   const [openAclDocId, setOpenAclDocId] = useState(null);
   const [aclByDoc, setAclByDoc] = useState({});
 
@@ -17,6 +19,15 @@ export default function SecurityPanel({ documents }) {
       setCheckError(err.message);
     } finally {
       setChecking(false);
+    }
+  }
+
+  async function loadAudit() {
+    try {
+      setAuditResult(await api.getDependencyAudit());
+      setAuditError(null);
+    } catch (err) {
+      setAuditError(err.message);
     }
   }
 
@@ -44,7 +55,27 @@ export default function SecurityPanel({ documents }) {
         {checking ? "Running…" : "Run isolation check"}
       </button>
 
+      <button className="btn-quiet" onClick={loadAudit} style={{ marginTop: 12 }}>
+        Load dependency audit
+      </button>
+
       {checkError && <div className="auth-error" style={{ marginTop: 16 }}>{checkError}</div>}
+      {auditError && <div className="auth-error" style={{ marginTop: 12 }}>{auditError}</div>}
+
+      {auditResult && (
+        <div className="check-list" style={{ marginTop: 16 }}>
+          <div className="check-row">
+            <span className="check-icon pass">✓</span>
+            <div>
+              <div className="check-name">Dependency scan readiness</div>
+              <div className="check-detail">Python manifests: {auditResult.python_manifests.length || 0}; JS manifests: {auditResult.javascript_manifests.length || 0}</div>
+            </div>
+          </div>
+          {auditResult.commands.map((command, index) => (
+            <div key={index} className="acl-entry">{command}</div>
+          ))}
+        </div>
+      )}
 
       {checkResult && (
         <div className="check-list">
