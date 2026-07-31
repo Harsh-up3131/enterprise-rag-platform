@@ -35,6 +35,11 @@ def run_eval(
     # If True, cases that don't include `relevant_chunk_ids` are scored as
     # recall=0.0 instead of being excluded (so Recall@K won't show as "n/a").
     score_missing_recall_as_zero: bool = False,
+    # When True, try to auto-annotate missing `relevant_chunk_ids` by
+    # searching the organization's chunks for n-gram matches against the
+    # question text. This attempts to recover ground-truth when the eval
+    # author omitted it, avoiding spurious "n/a" reports.
+    auto_annotate_missing: bool = True,
 ) -> dict:
     """Runs each case through the live pipeline and aggregates the scores.
 
@@ -51,20 +56,57 @@ def run_eval(
 
     for case in cases:
         result = answer_question(db, case["question"], organization_id, user_id)
-        retrieved_ids = [c.chunk_id for c in result.citations]
+        # Use retrieval-stage evidence (reranked candidates) for Recall@K
+        # rather than the post-generation validated citations. This matches
+        # the metric's intent: did retrieval find the expected chunks?
+        retrieved_ids = getattr(result, "retrieved_chunk_ids", []) or []
         expected_abstain = case.get("expect_abstain", False)
+
+        # If the case has no explicit ground-truth chunk ids, try to
+        # auto-annotate using a simple n-gram substring search over the
+        # organization's chunk texts. This is a best-effort heuristic and
+        # should be reviewed by a human when possible.
+        relevant_ids = case.get("relevant_chunk_ids", []) or []
+        auto_annotated = False
+        if not relevant_ids and auto_annotate_missing:
+            import re
+            from app.models import Chunk, Document
+
+            words = [w for w in re.findall(r"\w+", case["question"].lower()) if len(w) > 1]
+            ngrams = []
+            max_n = min(6, len(words))
+            for n in range(max_n, 0, -1):
+                for i in range(0, len(words) - n + 1):
+                    ngrams.append(" ".join(words[i : i + n]))
+
+            found = []
+            for phrase in ngrams[:50]:
+                if found:
+                    break
+                q = (
+                    db.query(Chunk.id)
+                    .join(Document, Document.id == Chunk.document_id)
+                    .filter(Chunk.organization_id == organization_id)
+                    .filter(Chunk.text.ilike(f"%{phrase}%"))
+                )
+                if case.get("knowledge_base_id"):
+                    q = q.filter(Document.knowledge_base_id == case.get("knowledge_base_id"))
+                rows = q.limit(10).all()
+                found.extend([r[0] for r in rows])
+
+            if found:
+                relevant_ids = [str(r) for r in found]
+                auto_annotated = True
 
         results.append(EvalCaseResult(
             question=case["question"],
-            recall_at_k=recall_at_k(
-                retrieved_ids,
-                case.get("relevant_chunk_ids", []),
-                treat_missing_as_zero=score_missing_recall_as_zero,
-            ),
+            recall_at_k=recall_at_k(retrieved_ids, relevant_ids, treat_missing_as_zero=score_missing_recall_as_zero),
             num_verified_citations=len(result.citations),
             abstained=result.abstained,
             expected_abstain=expected_abstain,
             correct_abstention_behavior=(result.abstained == expected_abstain),
+            suggested_relevant_ids=relevant_ids or None,
+            auto_annotated=auto_annotated,
         ))
 
     return aggregate(results)

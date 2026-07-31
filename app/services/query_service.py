@@ -33,6 +33,8 @@ class AnswerResult:
     citations: list
     trace_id: str
     conversation_id: str
+    # IDs of chunks returned by the retrieval stage (reranked evidence)
+    retrieved_chunk_ids: list[str] | None = None
 
 
 @traceable(name="answer_question", run_type="chain")
@@ -142,4 +144,5 @@ def answer_question(
         citations=[c for c in validated_citations if c.verification_status == "verified"],
         trace_id=trace.trace_id,
         conversation_id=conversation.id,
+        retrieved_chunk_ids=[e.chunk_id for e in result.evidence] if result and result.evidence else [],
     )

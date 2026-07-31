@@ -26,6 +26,11 @@ class EvalCaseResult:
     num_verified_citations: int
     # None when the case carries no ground-truth chunk ids (not graded).
     recall_at_k: float | None = None
+    # Optional: candidate ids found automatically when the eval case omitted
+    # ground-truth. This helps the UI surface suggestions for manual review.
+    suggested_relevant_ids: list[str] | None = None
+    # Whether the suggested ids were auto-annotated by the runner.
+    auto_annotated: bool = False
 
     @property
     def citation_scored(self) -> bool:
@@ -80,7 +85,9 @@ def aggregate(results: list[EvalCaseResult]) -> dict:
                 "expected_abstain": r.expected_abstain,
                 "abstention_ok": r.correct_abstention_behavior,
                 "num_verified_citations": r.num_verified_citations,
-                "recall_at_k": r.recall_at_k,
+                    "recall_at_k": r.recall_at_k,
+                    "suggested_relevant_ids": r.suggested_relevant_ids,
+                    "auto_annotated": r.auto_annotated,
             }
             for r in results
         ],
