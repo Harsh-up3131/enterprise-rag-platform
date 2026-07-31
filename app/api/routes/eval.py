@@ -11,6 +11,7 @@ from app.database import get_db
 from app.core.deps import get_current_context, RequestContext
 from app.schemas.eval import EvalRunRequest
 from app.services.evaluation.runner import run_eval, load_eval_set
+from app.services.evaluation.runner import get_suggested_chunks_for_cases
 
 router = APIRouter(prefix="/eval", tags=["evaluation"])
 
@@ -36,3 +37,17 @@ def run_evaluation(
         cases=cases,
         score_missing_recall_as_zero=score_missing,
     )
+
+
+@router.post("/suggestions")
+def suggested_chunks(
+    payload: EvalRunRequest | None = None,
+    ctx: RequestContext = Depends(get_current_context),
+    db: Session = Depends(get_db),
+):
+    """Return suggested chunk texts for eval cases missing ground-truth.
+
+    The request body mirrors `POST /eval/run` (an optional `cases` array).
+    """
+    cases = [c.model_dump() for c in payload.cases] if payload and payload.cases else load_eval_set()
+    return get_suggested_chunks_for_cases(db, ctx.organization_id, cases)
