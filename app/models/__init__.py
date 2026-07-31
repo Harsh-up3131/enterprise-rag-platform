@@ -9,7 +9,7 @@ from app.models.knowledge_base import KnowledgeBase
 from app.models.document import Document, DocumentVersion, DocumentACL
 from app.models.chunk import Chunk
 from app.models.conversation import Conversation, Message, Citation
-from app.models.trace import RetrievalTrace
+from app.models.trace import RetrievalTrace, QualitySummarySnapshot
 from app.models.audit import AuditEvent
 
 __all__ = [
@@ -20,5 +20,6 @@ __all__ = [
     "Chunk",
     "Conversation", "Message", "Citation",
     "RetrievalTrace",
+    "QualitySummarySnapshot",
     "AuditEvent",
 ]

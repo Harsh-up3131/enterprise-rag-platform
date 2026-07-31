@@ -6,6 +6,7 @@ const BLANK_CASE = { question: "", relevant_chunk_ids: [], expect_abstain: false
 export default function EvalPanel() {
   const [cases, setCases] = useState([]);
   const [result, setResult] = useState(null);
+  const [quality, setQuality] = useState(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState(null);
 
@@ -16,6 +17,8 @@ export default function EvalPanel() {
       .getSampleEvalSet()
       .then((sample) => setCases(sample.map((c) => ({ ...BLANK_CASE, ...c }))))
       .catch(() => setCases([{ ...BLANK_CASE }]));
+
+    api.getQualityDashboard().catch(() => null).then((summary) => setQuality(summary));
   }, []);
 
   function updateCase(index, patch) {
@@ -95,6 +98,36 @@ export default function EvalPanel() {
       </div>
 
       {error && <div className="auth-error" style={{ marginTop: 16 }}>{error}</div>}
+
+      {quality && (
+        <>
+          <div className="eval-metrics" style={{ marginTop: 18 }}>
+            <Metric label="Quality score" value={fmt(quality.answer_quality_score)} />
+            <Metric label="Abstention rate" value={fmt(quality.abstention_rate)} />
+            <Metric label="Citation success" value={fmt(quality.citation_success_rate)} />
+            <Metric label="Avg latency (ms)" value={fmt(quality.avg_latency_ms)} />
+          </div>
+
+          {quality.history?.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>Recent history</h3>
+              <div style={{ display: "grid", gap: 8 }}>
+                {quality.history.map((entry, idx) => (
+                  <div key={idx} className="eval-case" style={{ padding: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                      <strong>{entry.created_at ? new Date(entry.created_at).toLocaleString() : `Run ${idx + 1}`}</strong>
+                      <span>Quality {fmt(entry.answer_quality_score)}</span>
+                    </div>
+                    <div style={{ color: "var(--ink-soft)", fontSize: 13, marginTop: 6 }}>
+                      Abstention {fmt(entry.abstention_rate)} • Citation {fmt(entry.citation_success_rate)} • Latency {fmt(entry.avg_latency_ms)} ms
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {result && (
         <>

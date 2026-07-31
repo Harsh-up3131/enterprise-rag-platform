@@ -45,5 +45,6 @@ export const api = {
   getSampleEvalSet: () => request("/eval/sample-set"),
   // Omit `cases` to grade against the bundled sample set.
   runEval: (cases) => request("/eval/run", { method: "POST", body: cases ? { cases } : {} }),
+  getQualityDashboard: () => request("/eval/quality"),
   runIsolationCheck: () => request("/admin/security/isolation-check", { method: "POST" }),
 };

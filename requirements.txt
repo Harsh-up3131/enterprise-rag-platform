@@ -21,3 +21,4 @@ langchain-text-splitters==0.3.0
 langsmith==0.1.129
 numpy==1.26.4
 pytest==8.3.3
+alembic==1.13.4

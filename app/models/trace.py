@@ -1,11 +1,27 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, ForeignKey, DateTime, Text, Float
+from sqlalchemy import String, ForeignKey, DateTime, Text, Float, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+
+
+class QualitySummarySnapshot(Base):
+    """Persisted quality summary snapshots for trend tracking over time."""
+    __tablename__ = "quality_summary_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("organizations.id"), nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="eval")
+    total_queries: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    abstention_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    citation_success_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    avg_latency_ms: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    answer_quality_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
 class RetrievalTrace(Base):

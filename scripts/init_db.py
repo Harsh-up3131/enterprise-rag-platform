@@ -1,28 +1,28 @@
 """
-Initializes the database: enables the pgvector extension and creates all
-tables via SQLAlchemy metadata. POC uses `create_all` for speed; a
-production system should switch to Alembic migrations (see README "Next
-steps") so schema changes are versioned and reversible.
+Initializes the database by applying the Alembic migration chain.
 
 Usage:
     python scripts/init_db.py
 """
-import sys
 import os
+import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import text
+from alembic.config import Config
+from alembic import command
 
-from app.database import engine, Base
-import app.models  # noqa: F401 - registers all models on Base.metadata
+from app.config import settings
 
 
 def main():
-    with engine.begin() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    Base.metadata.create_all(bind=engine)
-    print("Database initialized: pgvector extension enabled, tables created.")
+    project_root = Path(__file__).resolve().parent.parent
+    alembic_cfg = Config(str(project_root / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    command.upgrade(alembic_cfg, "head")
+    print("Database initialized via Alembic migrations.")
 
 
 if __name__ == "__main__":

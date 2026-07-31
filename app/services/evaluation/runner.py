@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.services.query_service import answer_question
 from app.services.evaluation.metrics import recall_at_k, EvalCaseResult, aggregate
+from app.services.evaluation.monitoring import summarize_trace_metrics
+from app.services.evaluation.history import save_quality_snapshot
 
 _SAMPLE_EVAL_PATH = os.path.join(os.path.dirname(__file__), "sample_eval_set.json")
 
@@ -53,6 +55,7 @@ def run_eval(
         cases = load_eval_set(eval_set_path)
 
     results: list[EvalCaseResult] = []
+    trace_payload: list[dict] = []
 
     for case in cases:
         result = answer_question(db, case["question"], organization_id, user_id)
@@ -84,8 +87,18 @@ def run_eval(
             suggested_relevant_ids=relevant_ids or None,
             auto_annotated=auto_annotated,
         ))
+        trace_payload.append({
+            "abstained": result.abstained,
+            "selected_chunk_ids": [c.chunk_id for c in result.citations],
+            "latency_ms": {},
+            "query": case["question"],
+        })
 
-    return aggregate(results)
+    summary = aggregate(results)
+    monitoring_summary = summarize_trace_metrics(trace_payload)
+    summary["monitoring"] = monitoring_summary
+    save_quality_snapshot(db, organization_id, monitoring_summary)
+    return summary
 
 
 def run_ragas_eval(*args, **kwargs) -> dict:
