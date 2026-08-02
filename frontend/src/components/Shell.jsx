@@ -69,7 +69,7 @@ export default function Shell({ session, onLogout }) {
           onDocumentsChanged={refreshDocuments}
         />
 
-        <div className="workspace-main">
+        <div className={`workspace-main ${tab === "chat" ? "" : "single"}`}>
           {tab === "chat" && (
             <>
               <ConversationHistory

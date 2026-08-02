@@ -52,10 +52,17 @@ def answer_question(
 
     if conversation_id:
         conversation = db.get(Conversation, conversation_id)
+        if conversation is None or conversation.organization_id != organization_id:
+            raise ValueError("Conversation not found.")
     else:
         conversation = Conversation(organization_id=organization_id, user_id=user_id, title=question[:80])
         db.add(conversation)
         db.flush()
+
+    # Persist the user's turn as well as the assistant's — without it the
+    # conversation can't be replayed in the history panel.
+    db.add(Message(conversation_id=conversation.id, role="user", content=question))
+    db.flush()
 
     result = retrieve(db, question, organization_id, user_id, knowledge_base_id)
 

@@ -222,6 +222,13 @@ h1, h2, h3 {
   grid-template-columns: 220px minmax(0, 1fr);
   min-height: 0;
 }
+/* Evaluation / Security render without the conversation-history column, so the
+   panel gets the full width and centers itself instead of sitting in the
+   220px first column. */
+.workspace-main.single {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-y: auto;
+}
 
 /* ---------- Sidebar (library) ---------- */
 .sidebar {
@@ -448,7 +455,7 @@ h1, h2, h3 {
 .evidence-empty { color: var(--ink-soft); font-size: 13px; }
 
 /* ---------- Eval panel ---------- */
-.eval-panel { padding: 28px 8%; max-width: 640px; }
+.eval-panel { padding: 28px 32px 48px; max-width: 720px; width: 100%; margin: 0 auto; }
 .eval-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -622,7 +629,7 @@ h1, h2, h3 {
 @keyframes cursor-blink { 50% { opacity: 0; } }
 
 /* ---------- Security tab ---------- */
-.security-panel { padding: 28px 8%; max-width: 680px; }
+.security-panel { padding: 28px 32px 48px; max-width: 720px; width: 100%; margin: 0 auto; }
 .check-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
 .check-row {
   display: flex;

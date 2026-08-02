@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from app.api.routes import auth, documents, eval as eval_routes, organizations, query, security
+from app.api.routes import auth, conversations, documents, eval as eval_routes, organizations, query, security
 from app.config import settings
 
 
