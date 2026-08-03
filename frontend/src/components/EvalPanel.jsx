@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
 
 const BLANK_CASE = { question: "", relevant_chunk_ids: [], expect_abstain: false, tags: [] };
@@ -10,16 +10,21 @@ export default function EvalPanel() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState(null);
 
+  const loadQuality = useCallback(() => {
+    api.getQualityDashboard().catch(() => null).then((summary) => setQuality(summary));
+  }, []);
+
   // Prefill with the bundled starter set — it's a starting point to edit,
-  // not a set that grades well against an arbitrary corpus.
+  // not a set that grades well against an arbitrary corpus. This runs once:
+  // the panel stays mounted across tab switches, so edits here are not lost.
   useEffect(() => {
     api
       .getSampleEvalSet()
       .then((sample) => setCases(sample.map((c) => ({ ...BLANK_CASE, ...c }))))
       .catch(() => setCases([{ ...BLANK_CASE }]));
 
-    api.getQualityDashboard().catch(() => null).then((summary) => setQuality(summary));
-  }, []);
+    loadQuality();
+  }, [loadQuality]);
 
   function updateCase(index, patch) {
     setCases((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
@@ -47,6 +52,9 @@ export default function EvalPanel() {
     setError(null);
     try {
       setResult(await api.runEval(payload));
+      // A run writes a new quality snapshot; refresh so the metrics and
+      // history reflect it (the panel no longer remounts to pick it up).
+      loadQuality();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -154,27 +162,29 @@ export default function EvalPanel() {
             <Metric label="Abstention accuracy" value={fmt(result.abstention_accuracy)} />
           </div>
 
-          <table className="eval-breakdown">
-            <thead>
-              <tr>
-                <th>Question</th>
-                <th>Abstained</th>
-                <th>Citations</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.cases.map((c, i) => (
-                <tr key={i}>
-                  <td>{c.question}</td>
-                  <td className={c.abstention_ok ? "ok" : "bad"}>
-                    {c.abstained ? "yes" : "no"}
-                    {c.abstention_ok ? "" : c.expected_abstain ? " (expected yes)" : " (expected no)"}
-                  </td>
-                  <td>{c.num_verified_citations}</td>
+          <div className="eval-breakdown-wrapper">
+            <table className="eval-breakdown">
+              <thead>
+                <tr>
+                  <th>Question</th>
+                  <th>Abstained</th>
+                  <th>Citations</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {result.cases.map((c, i) => (
+                  <tr key={i}>
+                    <td>{c.question}</td>
+                    <td className={c.abstention_ok ? "ok" : "bad"}>
+                      {c.abstained ? "yes" : "no"}
+                      {c.abstention_ok ? "" : c.expected_abstain ? " (expected yes)" : " (expected no)"}
+                    </td>
+                    <td>{c.num_verified_citations}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </section>

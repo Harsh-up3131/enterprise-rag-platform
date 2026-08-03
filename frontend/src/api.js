@@ -42,6 +42,10 @@ export const api = {
 
   ask: (payload) => request("/query", { method: "POST", body: payload }),
 
+  listConversations: () => request("/conversations"),
+  getConversation: (id) => request(`/conversations/${id}`),
+  deleteConversation: (id) => request(`/conversations/${id}`, { method: "DELETE" }),
+
   getSampleEvalSet: () => request("/eval/sample-set"),
   // Omit `cases` to grade against the bundled sample set.
   runEval: (cases) => request("/eval/run", { method: "POST", body: cases ? { cases } : {} }),

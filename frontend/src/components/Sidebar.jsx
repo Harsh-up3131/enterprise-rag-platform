@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { useToast } from "../toast.jsx";
+import ConversationHistory from "./ConversationHistory.jsx";
 
 const STATUS_LABEL = {
   uploading: "uploading",
@@ -20,11 +21,11 @@ const INGESTION_PROGRESS = {
   failed: 100,
 };
 
-export default function Sidebar({ knowledgeBases, activeKbId, onSelectKb, onKbCreated, documents, onDocumentsChanged }) {
+export default function Sidebar({ knowledgeBases, activeKbId, onSelectKb, onKbCreated, documents, onDocumentsChanged, conversations, activeConversationId, onSelectConversation, onStartNew, onDeleteConversation }) {
   const [creatingKb, setCreatingKb] = useState(false);
   const [newKbName, setNewKbName] = useState("");
   const [uploadTitle, setUploadTitle] = useState("");
-  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadFiles, setUploadFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -60,19 +61,21 @@ export default function Sidebar({ knowledgeBases, activeKbId, onSelectKb, onKbCr
 
   async function upload(e) {
     e.preventDefault();
-    if (!uploadFile || !activeKbId) return;
+    if (!uploadFiles.length || !activeKbId) return;
     setUploading(true);
     setUploadError(null);
     try {
-      const form = new FormData();
-      form.append("knowledge_base_id", activeKbId);
-      form.append("title", uploadTitle || uploadFile.name);
-      form.append("sensitivity", "internal");
-      form.append("file", uploadFile);
-      await api.uploadDocument(form);
-      showToast(`"${uploadTitle || uploadFile.name}" uploaded — processing…`);
+      for (const file of uploadFiles) {
+        const form = new FormData();
+        form.append("knowledge_base_id", activeKbId);
+        form.append("title", uploadTitle || file.name);
+        form.append("sensitivity", "internal");
+        form.append("file", file);
+        await api.uploadDocument(form);
+      }
+      showToast(`${uploadFiles.length} file(s) uploaded — processing…`);
       setUploadTitle("");
-      setUploadFile(null);
+      setUploadFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
       onDocumentsChanged();
     } catch (err) {
@@ -112,15 +115,16 @@ export default function Sidebar({ knowledgeBases, activeKbId, onSelectKb, onKbCr
         ))}
 
         {creatingKb ? (
-          <form onSubmit={createKb} style={{ marginTop: 8 }}>
-            <input
-              autoFocus
-              placeholder="Name…"
-              value={newKbName}
-              onChange={(e) => setNewKbName(e.target.value)}
-              onBlur={() => !newKbName && setCreatingKb(false)}
-              style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 3, padding: "6px 8px" }}
-            />
+          <form onSubmit={createKb}>
+            <div className="field">
+              <input
+                autoFocus
+                placeholder="Name…"
+                value={newKbName}
+                onChange={(e) => setNewKbName(e.target.value)}
+                onBlur={() => !newKbName && setCreatingKb(false)}
+              />
+            </div>
           </form>
         ) : (
           <button className="btn-text" onClick={() => setCreatingKb(true)}>+ New knowledge base</button>
@@ -163,26 +167,41 @@ export default function Sidebar({ knowledgeBases, activeKbId, onSelectKb, onKbCr
           })}
 
           <form className="upload-box" onSubmit={upload}>
-            <input
-              type="text"
-              placeholder="Title (optional)"
-              value={uploadTitle}
-              onChange={(e) => setUploadTitle(e.target.value)}
-              style={{ width: "100%", marginBottom: 8, border: "1px solid var(--line)", borderRadius: 3, padding: "6px 8px" }}
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx,.txt,.md"
-              onChange={(e) => setUploadFile(e.target.files[0] || null)}
-            />
-            {uploadError && <div className="auth-error" style={{ marginTop: 8 }}>{uploadError}</div>}
-            <button className="btn-quiet" type="submit" disabled={!uploadFile || uploading} style={{ width: "100%", marginTop: 8 }}>
-              {uploading ? "Uploading…" : "Upload"}
+            <div className="field">
+              <input
+                type="text"
+                placeholder="Title (optional)"
+                value={uploadTitle}
+                onChange={(e) => setUploadTitle(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt,.md"
+                multiple
+                onChange={(e) => setUploadFiles(Array.from(e.target.files))}
+              />
+            </div>
+            {uploadError && <div className="auth-error">{uploadError}</div>}
+            <button className="btn btn-primary" type="submit" disabled={!uploadFiles.length || uploading}>
+              {uploading ? "Uploading…" : `Upload ${uploadFiles.length ? `(${uploadFiles.length})` : ''}`}
             </button>
           </form>
         </div>
       )}
+
+      <div className="sidebar-section">
+        <h2>Conversations</h2>
+        <ConversationHistory
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          onSelectConversation={onSelectConversation}
+          onStartNew={onStartNew}
+          onDeleteConversation={onDeleteConversation}
+        />
+      </div>
     </aside>
   );
 }

@@ -83,6 +83,7 @@ app.include_router(auth.router)
 app.include_router(organizations.router)
 app.include_router(documents.router)
 app.include_router(query.router)
+app.include_router(conversations.router)
 app.include_router(eval_routes.router)
 app.include_router(security.router)
 
