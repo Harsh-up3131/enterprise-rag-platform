@@ -24,7 +24,7 @@ jobs:
       - name: Install frontend dependencies
         run: |
           cd frontend
-          npm install
+          npm install --legacy-peer-deps
       - name: Run backend tests
         run: pytest -q tests/test_security_hardening.py tests/test_config_hardening.py tests/test_prompt_guardrails.py tests/test_evaluation_monitoring.py tests/test_quality_history.py tests/test_rate_limiting.py
       - name: Build frontend
